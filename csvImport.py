@@ -1,9 +1,8 @@
 import csv
 import sqlite3
-import datetime
-# from forex_python.converter import get_rate
+from datetime import datetime, date
 from forex_python import converter
-import traceback
+import re
 
 
 _CURRENCY_FORMATTER = converter.CurrencyRates()
@@ -66,45 +65,42 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
         Month = DateRaw[4:6]
         Day = DateRaw[6:]
         Date = Day + '/' + Month + '/' + Year
-        Week = datetime.date(int(Year), int(Month), int(Day)).isocalendar()[1]
-        t = datetime.datetime(int(Year), int(Month), int(Day))
+        Week = date(int(Year), int(Month), int(Day)).isocalendar()[1]
+        t = datetime(int(Year), int(Month), int(Day))
         ExpenseAccount = row[6]
         IncomeAccount = row[7]
         try:
             EXRate = round(get_rate("USD", "MXN", t), 2)
-            #print(t, '---', EXRate)
         except KeyboardInterrupt:
             print("Terminated Keyboard")
             conn.commit()
             cur.close()
             break
         except converter.RatesNotAvailableError:
-            EXRate = round(get_rate("USD","MXN",datetime.datetime(2016,1,1)),2)
+            EXRate = round(get_rate("USD","MXN",datetime(2016,1,1)),2)
             #print('Setting default {} --- {}'.format(t,EXRate))
         
         if Currency == 'MXN':
-            print(Amount, '---', t)
+            #print(Amount, '---', t)
             Amount = round(Amount /EXRate ,2)
             Currency = 'USD'
-            print(Amount, '---', EXRate)
- 
+            print(f'{SubCategory} --- {Amount} USD {EXRate}')
 
+        Note = re.sub("[^A-Za-z]+",".",row[8])
 
-        
-        Note = row[8]
         UID = row[12]
         if IncomeAccount and not ExpenseAccount and Year != 1010:
             cur.execute('''
-                            INSERT OR IGNORE
-                            INTO Income (Amount, Currency, Category, SubCategory, Account, Date, Note, UID) VALUES (?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, IncomeAccount, t, Note,UID))
+                           INSERT OR IGNORE
+                           INTO Income (Amount, Currency, Category, SubCategory, Account, Date, Note, UID) VALUES (?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, IncomeAccount, t, Note,UID))
         elif not IncomeAccount and ExpenseAccount:
             cur.execute('''
-                            INSERT OR IGNORE
-                            INTO Spending (Amount, Currency, Category, SubCategory, Account, Date, Note, UID) VALUES (?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, ExpenseAccount, Date, Note,UID))
+                           INSERT OR IGNORE
+                           INTO Spending (Amount, Currency, Category, SubCategory, Account, Date, Note, UID) VALUES (?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, ExpenseAccount, t, Note,UID))
         else:
             cur.execute('''
-                            INSERT OR IGNORE
-                            INTO Transfers (Amount, Currency, Category, SubCategory, AccountOut, AccountIn, Date, Note,UID) VALUES (?,?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, ExpenseAccount, IncomeAccount, Date, Note, UID))
+                           INSERT OR IGNORE
+                           INTO Transfers (Amount, Currency, Category, SubCategory, AccountOut, AccountIn, Date, Note,UID) VALUES (?,?,?,?,?,?,?,?,?)''', (Amount, Currency, Category, SubCategory, ExpenseAccount, IncomeAccount, t, Note, UID))
 
 conn.commit()
 cur.close()

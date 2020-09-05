@@ -69,22 +69,22 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
         t = datetime(int(Year), int(Month), int(Day))
         ExpenseAccount = row[6]
         IncomeAccount = row[7]
-        try:
-            EXRate = round(get_rate("USD", "MXN", t), 2)
-        except KeyboardInterrupt:
-            print("Terminated Keyboard")
-            conn.commit()
-            cur.close()
-            break
-        except converter.RatesNotAvailableError:
-            EXRate = round(get_rate("USD","MXN",datetime(2016,1,1)),2)
-            #print('Setting default {} --- {}'.format(t,EXRate))
+        # try:
+        #     EXRate = round(get_rate("USD", "MXN", t), 2)
+        # except KeyboardInterrupt:
+        #     print("Terminated Keyboard")
+        #     conn.commit()
+        #     cur.close()
+        #     break
+        # except converter.RatesNotAvailableError:
+        #     EXRate = round(get_rate("USD","MXN",datetime(2016,1,1)),2)
+        #     #print('Setting default {} --- {}'.format(t,EXRate))
         
-        if Currency == 'MXN':
-            #print(Amount, '---', t)
-            Amount = round(Amount /EXRate ,2)
-            Currency = 'USD'
-            print(f'{SubCategory} --- {Amount} USD {EXRate}')
+        # if Currency == 'MXN':
+        #     #print(Amount, '---', t)
+        #     Amount = round(Amount /EXRate ,2)
+        #     Currency = 'USD'
+        #     print(f'{SubCategory} --- {Amount} USD {EXRate}')
 
         Note = re.sub("[^A-Za-z]+",".",row[8])
 

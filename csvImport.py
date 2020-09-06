@@ -1,6 +1,7 @@
 import csv
 import sqlite3
-from datetime import datetime, date
+from datetime import date
+from random import randint
 from forex_python import converter
 import re
 
@@ -14,17 +15,20 @@ DBSave = '/mnt/d/Projects/SourceCode/Python/FinancialPy/DB/'
 
 CreateSchema = '''
 create table if not exists Ledger(
-LID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+LID CHAR[5] PRIMARY KEY NOT NULL UNIQUE,
 Amount FLOAT NOT NULL,
 Note TEXT,
 SubCategoryID INTEGER,
 SpendID INTEGER,
 IncomeID INTEGER,
 DateID INTEGER,
+CurrencyID INTEGER,
     FOREIGN KEY (SubCategoryID) REFERENCES Subcategory(SubID),
     FOREIGN KEY (SpendID) REFERENCES Accounts(AccID),
     FOREIGN KEY (IncomeID) REFERENCES Accounts(AccID),
-    FOREIGN KEY (DateID) REFERENCES Dates(DID)
+    FOREIGN KEY (DateID) REFERENCES Dates(DID),
+    FOREIGN KEY (CurrencyID) REFERENCES Currencies(CurrId)
+    
 );
 create table if not exists Category(
 CID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
@@ -41,12 +45,18 @@ CategoryID INTEGER,
 
 create table if not exists Dates (
 DID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
-date DATE UNIQUE
+date DATE UNIQUE,
+USDMXN Real
 );
 
 create table if not exists Accounts(
     AccID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
     AccountName CHAR[20] UNIQUE
+);
+
+create table if not exists Currencies(
+    CurrID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+    Currency CHAR[20] UNIQUE
 )
 '''
 
@@ -62,8 +72,13 @@ InsertCategory = '''INSERT OR IGNORE
 InsertSubCategory = '''INSERT OR IGNORE
                     INTO Subcategory(CategoryID,SubCategory) VALUES (?,?)'''
 
+InsertCurrency = '''INSERT OR IGNORE
+                    INTO Currencies(Currency) VALUES (?)'''
+
 InsertLedger = '''INSERT OR IGNORE
-                    INTO Ledger(Amount,Note,SubCategoryID,SpendID,IncomeID,DateID) VALUES (?,?,?,?,?,?)'''
+                    INTO Ledger(LID,Amount,Note,SubCategoryID,SpendID,IncomeID,DateID,CurrencyID) VALUES (?,?,?,?,?,?,?,?)'''
+
+InsertRate = '''UPDATE Dates SET USDMXN = ? WHERE Date = ?'''
 
 conn = sqlite3.connect(DBSave + 'FinancialsDB_norm.sqlite')
 cur = conn.cursor()
@@ -78,7 +93,7 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
     for row in readerAM:
         SpendingID = 0
         IncomeID = 0
-
+        UID = row[12][6:11]
         if row[6]: 
             cur.execute(InsertAccounts, ([row[6]]))
             cur.execute('SELECT AccID FROM Accounts Where AccountName = ?', (row[6],))
@@ -103,7 +118,7 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
         t = date(int(Year), int(Month), int(Day))
         Currency = row[1]
         Amount = round(float(row[2]), 2)
-        Note = re.sub("[^A-Za-z]+",".",row[8])
+        Note = re.sub("[^A-Za-z0-9]+",".",row[8])
 
 
 
@@ -142,7 +157,14 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
             SubCatID = cur.fetchone()[0]
             # print(SubCatID)
 
-        cur.execute(InsertLedger, (Amount, Note,SubCatID,SpendingID,IncomeID,DateID,))
+        if row[1]:
+            cur.execute(InsertCurrency, (row[1],))
+            cur.execute('SELECT CurrID FROM Currencies Where Currency = ?', (row[1],))
+            CurrencyID = cur.fetchone()[0]
+            # print(CurrencyID)
+
+
+        cur.execute(InsertLedger, (UID,Amount, Note,SubCatID,SpendingID,IncomeID,DateID,CurrencyID,))
 
 
         # cur.execute('SELECT CID FROM Category Where Category = ?', (row[3],))
@@ -152,6 +174,30 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
         # print(cur.fetchall()[0])
 
 
+cur.execute('SELECT date FROM Dates where USDMXN is null')
+Dates = cur.fetchall()
+if len(Dates) == 0: print("USDMXN Values Filled") 
+for day in Dates:
+    Year = int(day[0][:4])
+    Month = int(day[0][5:7])
+    Day = int(day[0][8:])
+    t = date(Year, Month, Day)
+    try:
+        EXRate = round(get_rate("USD", "MXN", t), 2)
+    except KeyboardInterrupt:
+        print("Terminated Keyboard")
+        conn.commit()
+        cur.close()
+        break
+    except converter.RatesNotAvailableError:
+        EXRate = round(get_rate("USD","MXN",date(2016,1,1)),2)
+
+    print(f'Date: {t} ExRate {EXRate}')
+    cur.execute(InsertRate, (EXRate,t))
+    
+        
+
+# print(EXRate, t)
 
 conn.commit()
 cur.close()

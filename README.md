@@ -1,2 +1,2 @@
 # FinancialPY
-Personal finance analysis from csv 
+Personal finance analysis from AndroMoney csv 

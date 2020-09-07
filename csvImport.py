@@ -98,7 +98,7 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
             cur.execute(InsertAccounts, ([row[6]]))
             cur.execute('SELECT AccID FROM Accounts Where AccountName = ?', (row[6],))
             SpendingID = cur.fetchone()[0]
-            # print(SpendingID)
+
 
         
                            
@@ -106,7 +106,6 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
             cur.execute(InsertAccounts, (row[7],))
             cur.execute('SELECT AccID FROM Accounts Where AccountName = ?', (row[7],))
             IncomeID = cur.fetchone()[0]
-            # print(IncomeID)
             
 
         DateRaw = row[5]
@@ -121,57 +120,32 @@ with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='repla
         Note = re.sub("[^A-Za-z0-9]+",".",row[8])
 
 
-
-        # try:
-        #     EXRate = round(get_rate("USD", "MXN", t), 2)
-        # except KeyboardInterrupt:
-        #     print("Terminated Keyboard")
-        #     conn.commit()
-        #     cur.close()
-        #     break
-        # except converter.RatesNotAvailableError:
-        #     EXRate = round(get_rate("USD","MXN",datetime(2016,1,1)),2)
-        #     #print('Setting default {} --- {}'.format(t,EXRate))
-        
-        # if Currency == 'MXN':
-        #     #print(Amount, '---', t)
-        #     Amount = round(Amount /EXRate ,2)
-        #     Currency = 'USD'
-
-
         if row[5]: 
             cur.execute(InsertDates, (t,))
             cur.execute('SELECT DID FROM Dates Where date = ?', (t,))
             DateID = cur.fetchone()[0]
-            # print(DateID)
+
 
         if row[3]: 
             cur.execute(InsertCategory, (row[3],))
             cur.execute('SELECT CID FROM Category Where Category = ?', (row[3],))
             CatID = cur.fetchone()[0]
-            # print(CatID)
 
         if row[4]:
             cur.execute(InsertSubCategory, (CatID, row[4],))
             cur.execute('SELECT SubID FROM SubCategory Where SubCategory = ?', (row[4],))
             SubCatID = cur.fetchone()[0]
-            # print(SubCatID)
+
 
         if row[1]:
             cur.execute(InsertCurrency, (row[1],))
             cur.execute('SELECT CurrID FROM Currencies Where Currency = ?', (row[1],))
             CurrencyID = cur.fetchone()[0]
-            # print(CurrencyID)
+
 
 
         cur.execute(InsertLedger, (UID,Amount, Note,SubCatID,SpendingID,IncomeID,DateID,CurrencyID,))
 
-
-        # cur.execute('SELECT CID FROM Category Where Category = ?', (row[3],))
-        # cur.execute('SELECT SubID FROM SubCategory Where SubCategory = ?', (row[4],))
-        # 
-        # cur.execute('SELECT AccID FROM Accounts Where AccountName = ?', (row[7],))
-        # print(cur.fetchall()[0])
 
 
 cur.execute('SELECT date FROM Dates where USDMXN is null')
@@ -194,10 +168,6 @@ for day in Dates:
 
     print(f'Date: {t} ExRate {EXRate}')
     cur.execute(InsertRate, (EXRate,t))
-    
-        
-
-# print(EXRate, t)
 
 conn.commit()
 cur.close()

@@ -1,8 +1,8 @@
 import csv
 import sqlite3
+import re
 from datetime import date
 from forex_python import converter
-import re
 from gdrived import download_file_from_google_drive
 
 
@@ -60,25 +60,55 @@ create table if not exists Currencies(
 )
 '''
 
-InsertDates = '''INSERT OR IGNORE
-                INTO Dates (date) VALUES (?) '''
 
-InsertAccounts = '''INSERT OR IGNORE
-                    INTO Accounts (AccountName) VALUES (?)'''
 
-InsertCategory = '''INSERT OR IGNORE
-                    INTO Category(Category) VALUES (?)'''
+def Financial_DML (fields, table, type='insert'):
+    if type == 'insert':
+        sqlDML =  'INSERT OR IGNORE INTO ' + table +'( ' +','.join(fields) + ' ) VALUES ('+ str('?,'*len(fields))[:-1] + ')'
+    elif type == 'update':
+        print('now updating')
+        sqlDML = ''
+    return sqlDML
+    
 
-InsertSubCategory = '''INSERT OR IGNORE
-                    INTO Subcategory(CategoryID,SubCategory) VALUES (?,?)'''
+with open('/mnt/d/Projects/SourceCode/FlatFiles/gdrive_files') as keys:
+    reader_gdrive = csv.reader(keys)
+    for row in reader_gdrive:
+        if row[0] == 'andromoney':
+            g_key = row[1]
+            break
 
-InsertCurrency = '''INSERT OR IGNORE
-                    INTO Currencies(Currency) VALUES (?)'''
+download_file_from_google_drive(g_key, FFPath + 'AndroMoney.csv')
 
-InsertLedger = '''INSERT OR IGNORE
-                    INTO Ledger(LID,Amount,Note,SubCategoryID,SpendID,IncomeID,DateID,CurrencyID) VALUES (?,?,?,?,?,?,?,?)'''
 
-InsertRate = '''UPDATE Dates SET USDMXN = ? WHERE Date = ?'''
+
+
+fields = ['date']
+table = 'Dates'
+InsertDates = Financial_DML (fields, table) 
+
+fields = ['AccountName']
+table = 'Accounts'
+InsertAccounts = Financial_DML (fields, table) 
+
+fields = ['Category']
+table = 'Category'
+InsertCategory = Financial_DML (fields, table) 
+
+fields = ['CategoryID','SubCategory']
+table = 'Subcategory'
+InsertSubCategory = Financial_DML (fields, table) 
+
+fields = ['Currency']
+table = 'Currencies'
+InsertCurrency = Financial_DML (fields, table) 
+
+fields = ['LID','Amount','Note','SubCategoryID','SpendID','IncomeID','DateID','CurrencyID']
+table = 'Ledger'
+InsertLedger = Financial_DML (fields, table) 
+
+UpdateRate = '''UPDATE Dates SET USDMXN = ? WHERE Date = ?'''
+
 
 conn = sqlite3.connect(DBSave + 'FinancialsDB_norm.sqlite')
 cur = conn.cursor()
@@ -87,13 +117,12 @@ cur.executescript(CreateSchema)
 
 
 
-
 with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='replace') as csvfile:
     readerAM = csv.reader(csvfile)
     for row in readerAM:
         if row[0] == 'Google Documents' or row[0] == 'Id': continue
-        SpendingID = 0
-        IncomeID = 0
+        SpendingID = None
+        IncomeID = None
         UID = row[12][6:11]
         if row[6]: 
             cur.execute(InsertAccounts, ([row[6]]))
@@ -168,7 +197,7 @@ for day in Dates:
         EXRate = round(get_rate("USD","MXN",date(2016,1,1)),2)
 
     print(f'Date: {t} ExRate {EXRate}')
-    cur.execute(InsertRate, (EXRate,t))
+    cur.execute(UpdateRate, (EXRate,t))
 
 conn.commit()
 cur.close()

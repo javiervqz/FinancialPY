@@ -28,8 +28,3 @@ def download_file_from_google_drive(id, destination):
         response = session.get(URL, params = params, stream = True)
 
     save_response_content(response, destination)    
-
-if __name__ == "__main__":
-    file_id = '1A83EunfBnNWDqiANrC4h1Y0lXAXqHxoo'
-    destination = '/mnt/d/Projects/SourceCode/FlatFiles/AndroMoney.csv'
-    download_file_from_google_drive(file_id, destination)

@@ -1,9 +1,9 @@
 import csv
 import sqlite3
 from datetime import date
-from random import randint
 from forex_python import converter
 import re
+from gdrived import download_file_from_google_drive
 
 
 _CURRENCY_FORMATTER = converter.CurrencyRates()
@@ -91,6 +91,7 @@ cur.executescript(CreateSchema)
 with open(FFPath + 'AndroMoney.csv', newline='', encoding='utf-8', errors='replace') as csvfile:
     readerAM = csv.reader(csvfile)
     for row in readerAM:
+        if row[0] == 'Google Documents' or row[0] == 'Id': continue
         SpendingID = 0
         IncomeID = 0
         UID = row[12][6:11]

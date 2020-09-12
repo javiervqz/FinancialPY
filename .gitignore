@@ -1,3 +1,4 @@
 .vscode/
 DB/
 *drawio
+__pycache__/

@@ -71,7 +71,7 @@ def Financial_DML (fields, table, type='insert'):
     return sqlDML
     
 
-with open('/mnt/d/Projects/SourceCode/FlatFiles/gdrive_files') as keys:
+with open(FFPath + '/gdrive_files') as keys:
     reader_gdrive = csv.reader(keys)
     for row in reader_gdrive:
         if row[0] == 'andromoney':
